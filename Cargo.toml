@@ -8,6 +8,6 @@ edition = "2024"
 
 [dependencies]
 sys-info = "0.9.1"
-regex = "1.12.3"
+clap = { version = "4", features = ["derive"] }
 log = "0.4.29"
 simplelog = "0.12.2"

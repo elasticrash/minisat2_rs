@@ -38,7 +38,7 @@ impl ISolverStats for SolverStats {
 
 impl Display for SolverStats {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        let duration: u64 = (self.start_time.elapsed().subsec_millis()) as u64;
+        let duration: u64 = (self.start_time.elapsed().as_millis()) as u64;
         info!("restarts              : {0}", self.starts);
         info!(
             "conflicts             : {0}    ({1}/ms)",

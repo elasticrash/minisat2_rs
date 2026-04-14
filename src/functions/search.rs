@@ -1,6 +1,5 @@
 use crate::functions::analyse::*;
 use crate::functions::analyse_final::*;
-use crate::functions::dpll::*;
 use crate::functions::new_clause::*;
 use crate::functions::propagate::*;
 use crate::functions::reduce_db::*;
@@ -100,9 +99,6 @@ impl Search for SolverState {
                     let next: Lit = self.order.select(parms.random_var_freq);
 
                     if next == Lit::undefined() {
-                        if self.model_found() {
-                            continue;
-                        }
                         self.model
                             .resize(self.clone().n_vars() as usize, Lbool::Undef0);
 

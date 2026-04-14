@@ -1,6 +1,5 @@
 pub mod analyse;
 pub mod analyse_final;
-pub mod dpll;
 pub mod enqueue;
 pub mod new_clause;
 pub mod propagate;

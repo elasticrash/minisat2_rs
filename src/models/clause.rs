@@ -37,14 +37,14 @@ impl PartialEq for Clause {
             && self.data.len() == other.data.len()
             && self.is_learnt == other.is_learnt
         {
-            let mut f: String = String::new();
+            let mut f: Vec<String> = vec![];
             for y in &self.data {
-                f.push_str(&y.x.to_string())
+                f.push(y.x.to_string())
             }
 
-            let mut s: String = String::new();
+            let mut s: Vec<String> = vec![];
             for y in &other.data {
-                s.push_str(&y.x.to_string())
+                s.push(y.x.to_string())
             }
 
             if f == s {

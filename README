@@ -1,7 +1,33 @@
-# Rust Port of MiniSAT2 (kind of)
+# Rust Port of MiniSAT 2
 
-All tests pass but there isn't a great variety of them.
+## Build
 
-By default it runs whatever problem is present on the ./input.txt
+```
+cargo build --release
+```
 
-Default logging level is info, which is the outcome of the solve and the same info you get at stdout when you run the binary. You can set the logger level to trace to get more detailed logs. I should probably add clap to be able to set the logging level and the input file from the command line. I wanted to keep dependencies to a minimum for now.
+## Usage
+
+```
+sat_rs [OPTIONS] [input]
+```
+
+| Argument | Description | Default |
+|---|---|---|
+| `[input]` | CNF file in DIMACS format | `./input.txt` |
+| `-l, --log-level` | Log level: `error`, `warn`, `info`, `debug`, `trace` | `info` |
+
+Examples:
+
+```
+sat_rs                          # reads ./input.txt
+sat_rs problem.cnf
+sat_rs problem.cnf --log-level trace
+```
+Output is written to stdout and `sat.log`.
+
+## Tests
+
+```
+cargo test
+```

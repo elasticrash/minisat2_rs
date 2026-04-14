@@ -4,34 +4,47 @@ use crate::functions::new_clause::*;
 use crate::functions::solve::*;
 use crate::models::lit::*;
 use crate::models::solverstate::*;
+use clap::Parser;
 use simplelog::*;
 use std::cmp::Ordering;
-use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 
 #[macro_use]
 extern crate log;
 
+#[derive(Parser)]
+#[command(name = "sat_rs", about = "MiniSAT 2 based SAT solver")]
+struct Cli {
+    #[arg(default_value = "./input.txt")]
+    input: String,
+
+    #[arg(short, long, default_value = "info")]
+    log_level: LevelFilter,
+}
+
 fn main() {
-    let _args: Vec<String> = env::args().collect();
+    let cli = Cli::parse();
 
     CombinedLogger::init(vec![
         TermLogger::new(
-            LevelFilter::Info,
+            cli.log_level,
             Config::default(),
             TerminalMode::Mixed,
             ColorChoice::Auto,
         ),
         WriteLogger::new(
-            LevelFilter::Info,
+            cli.log_level,
             Config::default(),
             File::create("sat.log").unwrap(),
         ),
     ])
     .unwrap();
 
-    let mut file = File::open("./input.txt").unwrap();
+    let mut file = File::open(&cli.input).unwrap_or_else(|e| {
+        eprintln!("error opening '{}': {}", cli.input, e);
+        std::process::exit(1);
+    });
     let mut buffer = String::new();
     file.read_to_string(&mut buffer).unwrap();
 
@@ -242,6 +255,17 @@ p cnf 16 18
     assert_eq!(state.solver_stats.decisions, 6.);
     assert_eq!(state.solver_stats.propagations, 25.);
     assert_eq!(state.solver_stats.tot_literals, 1.);
+}
+
+#[test]
+fn unsat_unit_conflict() {
+    let problem = r#"
+p cnf 1 2
+1 0
+-1 0
+"#;
+    let state = process_problem(problem);
+    assert!(!state.ok);
 }
 
 #[test]
