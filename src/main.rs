@@ -16,7 +16,7 @@ extern crate log;
 #[derive(Parser)]
 #[command(name = "sat_rs", about = "MiniSAT 2 based SAT solver")]
 struct Cli {
-    #[arg(default_value = "./input.txt")]
+    #[arg(default_value = "./default.cnf")]
     input: String,
 
     #[arg(short, long, default_value = "info")]

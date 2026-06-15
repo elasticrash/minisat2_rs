@@ -1,4 +1,4 @@
-# Rust Port of MiniSAT 2
+# A MiniSAT solver in Rust based on MiniSAT 2
 
 ## Build
 

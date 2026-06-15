@@ -19,9 +19,6 @@ impl Reduce for SolverState {
     fn reduce_db(&mut self) {
         trace!("{}|{}|{}", "reduce_db".to_string(), file!(), line!());
 
-        let mut i: i32 = 0;
-        let mut j: i32 = 0;
-
         let extra_lim: f64 = self.cla_inc / self.learnts.len() as f64;
 
         self.learnts.sort_by(|x, y| {
@@ -32,27 +29,20 @@ impl Reduce for SolverState {
             }
         });
 
-        for y in 0..self.learnts.len() / 2 {
-            if self.learnts[y].data.len() > 2 && !self.locked(&self.learnts[y].clone()) {
-                self.remove(self.learnts[y].clone(), false);
-            } else {
-                self.learnts[j as usize] = self.learnts[y].clone();
-                j += 1;
-            }
-            i = y as i32;
-        }
+        let half = self.learnts.len() / 2;
+        let mut j: usize = 0;
+        for i in 0..self.learnts.len() {
+            let removable = self.learnts[i].data.len() > 2
+                && !self.locked(&self.learnts[i].clone())
+                && (i < half || self.learnts[i].activity < extra_lim);
 
-        for y in i..self.learnts.len() as i32 {
-            if self.learnts[y as usize].data.len() > 2
-                && !self.locked(&self.learnts[y as usize].clone())
-                && self.learnts[y as usize].activity < extra_lim
-            {
-                self.remove(self.learnts[y as usize].clone(), false);
+            if removable {
+                self.remove(self.learnts[i].clone(), false);
             } else {
-                self.learnts[j as usize] = self.learnts[i as usize].clone();
+                self.learnts[j] = self.learnts[i].clone();
                 j += 1;
             }
         }
-        self.learnts.truncate(self.learnts.len() - (i - j) as usize)
+        self.learnts.truncate(j);
     }
 }

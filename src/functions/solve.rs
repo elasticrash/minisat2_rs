@@ -77,27 +77,35 @@ impl Solver for SolverState {
         }
         assert!(self.root_level == self.decision_level());
 
-        info!("==================================[MINISAT]=======================================");
+        let sep = "=".repeat(83);
+        info!("{sep}");
         info!(
-            "| Conflicts |       ORIGINAL        |              LEARNT              | Progress |"
+            "|{:^11}|{:^21}|{:^36}|{:^10}|",
+            "Conflicts", "ORIGINAL", "LEARNT", "Progress"
         );
         info!(
-            "|           | Clauses      Literals |   Limit Clauses Literals  Lit/Cl |          |"
+            "|{:^11}| {:>8} {:>10} | {:>7} {:>8} {:>10} {:>6} |{:^10}|",
+            "", "Clauses", "Literals", "Limit", "Clauses", "Literals", "Lit/Cl", ""
         );
-        info!("==================================================================================");
+        info!("{sep}");
 
         while is_undefined(status) {
+            let n_learnts = self.clone().n_learnts();
+            let lit_per_cl = if n_learnts > 0 {
+                (self.solver_stats.learnts_literals / n_learnts as f64).floor() as i64
+            } else {
+                0
+            };
             info!(
-                    "|      {0}    |     {1}        {2}    |   {3}      {4}       {5}       {6}   |   {7} %   |",
-                    self.solver_stats.conflicts,
-                    self.clone().n_clauses(),
-                    self.solver_stats.clauses_literals,
-            nof_learnts.floor(),
-                    self.clone().n_learnts(),
-                    self.solver_stats.learnts_literals,
-                    (self.solver_stats.learnts_literals
-                        / self.clone().n_learnts() as f64).floor(),
-                        self.progress_estimate * 100.0
+                "| {:>9.0} | {:>8} {:>10.0} | {:>7.0} {:>8} {:>10.0} {:>6} | {:>7.2}% |",
+                self.solver_stats.conflicts,
+                self.clone().n_clauses(),
+                self.solver_stats.clauses_literals,
+                nof_learnts.floor(),
+                n_learnts,
+                self.solver_stats.learnts_literals,
+                lit_per_cl,
+                self.progress_estimate * 100.0
             );
 
             status = self.search(nof_conflicts as i32, nof_learnts as i32, parms);
@@ -105,7 +113,7 @@ impl Solver for SolverState {
             nof_learnts *= 1.1;
         }
 
-        info!("==================================================================================");
+        info!("{sep}");
         self.cancel_until(0);
         true
     }
@@ -126,7 +134,7 @@ impl Solver for SolverState {
         let f = 1.0 / self.n_vars() as f64;
 
         for i in 0..self.n_vars() {
-            if is_undefined(self.value_by_var(i)) {
+            if !is_undefined(self.value_by_var(i)) {
                 progress += f.powf(self.level[i as usize] as f64);
             }
         }
