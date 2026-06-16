@@ -1,10 +1,18 @@
 [package]
 name = "sat_rs"
-version = "0.2.0"
+version = "0.2.2"
 authors = ["stefano <s.kouroupis@gmail.com>"]
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "sat_rs"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sat_rs"
+path = "src/main.rs"
 
 [dependencies]
 sys-info = "0.9.1"
