@@ -3,7 +3,7 @@
 //! # Example
 //!
 //! ```
-//! use sat_rs::solve_dimacs;
+//! use mini_sat_rs::solve_dimacs;
 //!
 //! let problem = "p cnf 3 2\n1 -3 0\n2 3 -1 0\n";
 //! let state = solve_dimacs(problem);
@@ -13,7 +13,7 @@
 //! For finer-grained control, build a [`SolverState`] directly via the prelude:
 //!
 //! ```
-//! use sat_rs::prelude::*;
+//! use mini_sat_rs::prelude::*;
 //!
 //! let mut state = SolverState::new();
 //! while 2 >= state.n_vars() {
@@ -37,7 +37,7 @@ pub mod models;
 /// build and solve a problem into scope in one line:
 ///
 /// ```
-/// use sat_rs::prelude::*;
+/// use mini_sat_rs::prelude::*;
 ///
 /// let mut state = SolverState::new();
 /// while 2 >= state.n_vars() {

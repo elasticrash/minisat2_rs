@@ -1,12 +1,12 @@
 use clap::Parser;
 use log::{info, LevelFilter};
-use sat_rs::solve_dimacs;
+use mini_sat_rs::solve_dimacs;
 use simplelog::*;
 use std::fs::File;
 use std::io::prelude::*;
 
 #[derive(Parser)]
-#[command(name = "sat_rs", about = "MiniSAT 2 based SAT solver")]
+#[command(name = "mini_sat_rs", about = "MiniSAT 2 based SAT solver")]
 struct Cli {
     #[arg(default_value = "./default.cnf")]
     input: String,

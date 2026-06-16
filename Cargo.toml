@@ -1,17 +1,17 @@
 [package]
 name = "mini_sat_rs"
-version = "0.2.2"
+version = "0.2.3"
 description = "A simple SAT solver written in Rust"
 license = "MIT"
 authors = ["stefano <s.kouroupis@gmail.com>"]
 edition = "2024"
 
 [lib]
-name = "sat_rs"
+name = "mini_sat_rs"
 path = "src/lib.rs"
 
 [[bin]]
-name = "sat_rs"
+name = "mini_sat_rs"
 path = "src/main.rs"
 
 [dependencies]
