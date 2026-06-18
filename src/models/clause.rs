@@ -1,5 +1,21 @@
 use crate::models::lit::Lit;
 
+/// A lightweight handle to a [`Clause`] stored in the solver's clause arena.
+///
+/// Clauses live in a single owned arena (`SolverState::arena`) and are referred
+/// to everywhere else (watch lists, reasons, the clause/learnt index lists) by
+/// this `Copy` index instead of being cloned. Comparing two clauses for
+/// identity is therefore a plain integer comparison.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct ClauseRef(pub u32);
+
+impl ClauseRef {
+    #[inline]
+    pub fn index(self) -> usize {
+        self.0 as usize
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Clause {
     pub data: Vec<Lit>,
@@ -28,29 +44,5 @@ impl IClause for Clause {
     }
     fn learnt(&self) -> bool {
         self.is_learnt
-    }
-}
-
-impl PartialEq for Clause {
-    fn eq(&self, other: &Self) -> bool {
-        if self.activity == other.activity
-            && self.data.len() == other.data.len()
-            && self.is_learnt == other.is_learnt
-        {
-            let mut f: Vec<String> = vec![];
-            for y in &self.data {
-                f.push(y.x.to_string())
-            }
-
-            let mut s: Vec<String> = vec![];
-            for y in &other.data {
-                s.push(y.x.to_string())
-            }
-
-            if f == s {
-                return true;
-            }
-        }
-        false
     }
 }

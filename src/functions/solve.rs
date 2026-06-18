@@ -56,7 +56,7 @@ impl Solver for SolverState {
             if !self.assume(p) {
                 match &self.reason[var(&p) as usize] {
                     Some(r) => {
-                        self.clone().analyse_final(&(r.clone()), true);
+                        self.clone().analyse_final(*r, true);
                         self.conflict.push(!p);
                     }
                     None => {
@@ -69,7 +69,7 @@ impl Solver for SolverState {
                 return false;
             }
             if let Some(confl) = self.propagate() {
-                self.analyse_final(&confl, false);
+                self.analyse_final(confl, false);
                 assert!(!self.conflict.is_empty());
                 self.cancel_until(0);
                 return false;

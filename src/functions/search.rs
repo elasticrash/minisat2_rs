@@ -61,11 +61,11 @@ impl Search for SolverState {
                     let mut learnt_clause: Vec<Lit> = Vec::new();
 
                     if self.decision_level() == self.root_level {
-                        self.analyse_final(&_c, false);
+                        self.analyse_final(_c, false);
                         return L_FALSE;
                     }
 
-                    let backtrack_level: i32 = self.analyze(Some(_c.clone()), &mut learnt_clause);
+                    let backtrack_level: i32 = self.analyze(Some(_c), &mut learnt_clause);
 
                     self.cancel_until(max(backtrack_level, self.root_level));
                     self.new_clause(&mut learnt_clause, true);
@@ -138,7 +138,8 @@ impl Search for SolverState {
         );
 
         for y in 0..self.learnts.len() {
-            self.learnts[y].activity *= 1e-20;
+            let cref = self.learnts[y];
+            self.clause_mut(cref).activity *= 1e-20;
         }
         self.cla_inc *= 1e-20;
     }

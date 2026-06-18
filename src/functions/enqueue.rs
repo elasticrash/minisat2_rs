@@ -20,12 +20,12 @@ use crate::models::solverstate::*;
 |    TRUE if fact was enqueued without conflict, FALSE otherwise.
 |________________________________________________________________________________________________@*/
 pub trait NQueue {
-    fn enqueue(&mut self, p: &Lit, from: Option<Clause>) -> bool;
+    fn enqueue(&mut self, p: &Lit, from: Option<ClauseRef>) -> bool;
     fn internal_enqueue(&mut self, _fact: &Lit) -> bool;
 }
 
 impl NQueue for SolverState {
-    fn enqueue(&mut self, p: &Lit, from: Option<Clause>) -> bool {
+    fn enqueue(&mut self, p: &Lit, from: Option<ClauseRef>) -> bool {
         trace!("{}|{}|{}|{:?}", "enqueue".to_string(), file!(), line!(), p);
 
         if !is_undefined(self.value_by_lit(*p)) {

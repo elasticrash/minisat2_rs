@@ -23,19 +23,25 @@ pub struct Assigns {
 #[derive(Clone)]
 pub struct SolverState {
     pub ok: bool,
-    pub clauses: Vec<Clause>,
-    pub learnts: Vec<Clause>,
+    /// Owns every clause ever allocated. Everything else refers to clauses by
+    /// [`ClauseRef`] (an index into this arena) instead of cloning them.
+    pub arena: Vec<Clause>,
+    /// Arena slots whose clauses have been removed and can be reused by the
+    /// next allocation, so the arena does not grow without bound.
+    pub free_clauses: Vec<ClauseRef>,
+    pub clauses: Vec<ClauseRef>,
+    pub learnts: Vec<ClauseRef>,
     pub cla_inc: f64,
     pub cla_decay: f64,
     pub activity: Activity,
     pub var_inc: f64,
     pub var_decay: f64,
     pub order: VarOrder,
-    pub watches: Vec<Vec<Clause>>,
+    pub watches: Vec<Vec<ClauseRef>>,
     pub assigns: Assigns,
     pub trail: Vec<Lit>,
     pub trail_lim: Vec<i32>,
-    pub reason: Vec<Option<Clause>>,
+    pub reason: Vec<Option<ClauseRef>>,
     pub level: Vec<i32>,
     pub trail_pos: Vec<i32>,
     pub root_level: i32,
@@ -68,6 +74,8 @@ pub trait NewState {
 impl NewState for SolverState {
     fn new() -> Self {
         let mut solver = Self {
+            arena: Vec::new(),
+            free_clauses: Vec::new(),
             clauses: Vec::new(),
             learnts: Vec::new(),
             activity: Activity { col: Vec::new() },
@@ -122,13 +130,41 @@ pub struct SearchParams {
     pub random_var_freq: f64,
 }
 
+/// Arena access helpers. Clauses are stored once in `self.arena` and reached
+/// through their [`ClauseRef`]; these keep the indexing in one place.
+impl SolverState {
+    #[inline]
+    pub fn clause(&self, cref: ClauseRef) -> &Clause {
+        &self.arena[cref.index()]
+    }
+
+    #[inline]
+    pub fn clause_mut(&mut self, cref: ClauseRef) -> &mut Clause {
+        &mut self.arena[cref.index()]
+    }
+
+    /// Move a clause into the arena and return a handle to it, reusing a freed
+    /// slot when one is available.
+    #[inline]
+    pub fn alloc_clause(&mut self, c: Clause) -> ClauseRef {
+        if let Some(cref) = self.free_clauses.pop() {
+            self.arena[cref.index()] = c;
+            cref
+        } else {
+            let cref = ClauseRef(self.arena.len() as u32);
+            self.arena.push(c);
+            cref
+        }
+    }
+}
+
 pub trait Internal {
     fn i_enqueue(&mut self, fact: Lit) -> bool;
     fn var_bump_activity(&mut self, p: Lit);
     fn var_decay_activity(&mut self);
     fn cla_decay_activity(&mut self);
-    fn cla_bump_activity(&mut self, c: &mut Clause);
-    fn locked(&mut self, _c: &Clause) -> bool;
+    fn cla_bump_activity(&mut self, cref: ClauseRef);
+    fn locked(&mut self, cref: ClauseRef) -> bool;
     fn decision_level(&mut self) -> i32;
 }
 
@@ -208,15 +244,16 @@ impl Internal for SolverState {
     fn cla_decay_activity(&mut self) {
         self.cla_inc *= self.cla_decay;
     }
-    fn cla_bump_activity(&mut self, c: &mut Clause) {
-        c.activity += self.cla_inc;
-        if c.activity > 1e20 {
+    fn cla_bump_activity(&mut self, cref: ClauseRef) {
+        self.clause_mut(cref).activity += self.cla_inc;
+        if self.clause(cref).activity > 1e20 {
             self.cla_rescale_activity();
         }
     }
-    fn locked(&mut self, _c: &Clause) -> bool {
-        match &self.reason[var(&_c.data[0]) as usize] {
-            Some(x) => _c == x,
+    fn locked(&mut self, cref: ClauseRef) -> bool {
+        let first = self.clause(cref).data[0];
+        match self.reason[var(&first) as usize] {
+            Some(x) => x == cref,
             _ => false,
         }
     }
