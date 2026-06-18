@@ -54,9 +54,7 @@ pub mod prelude {
     pub use crate::models::clause::{Clause, IClause};
     pub use crate::models::lbool::Lbool;
     pub use crate::models::lit::{ILit, Lit};
-    pub use crate::models::solverstate::{
-        NewState, NewVar, SearchParams, Setters, SolverState,
-    };
+    pub use crate::models::solverstate::{NewState, NewVar, SearchParams, Setters, SolverState};
     pub use crate::models::statsparams::{ISolverStats, SolverStats};
 
     pub use crate::solve_dimacs;
@@ -122,10 +120,6 @@ mod tests {
     use super::solve_dimacs;
     use crate::models::lbool::Lbool;
 
-    /// Check that the model captured in `state` actually satisfies every clause
-    /// of the given DIMACS problem. This is a semantic oracle independent of the
-    /// solver's internal bookkeeping (clause storage, counts, etc.), so it stays
-    /// valid across refactors of those internals.
     fn assert_model_satisfies(problem: &str) {
         let state = solve_dimacs(problem);
         assert!(state.ok, "expected SATISFIABLE");

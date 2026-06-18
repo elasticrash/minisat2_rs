@@ -1,11 +1,5 @@
 use crate::models::lit::Lit;
 
-/// A lightweight handle to a [`Clause`] stored in the solver's clause arena.
-///
-/// Clauses live in a single owned arena (`SolverState::arena`) and are referred
-/// to everywhere else (watch lists, reasons, the clause/learnt index lists) by
-/// this `Copy` index instead of being cloned. Comparing two clauses for
-/// identity is therefore a plain integer comparison.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ClauseRef(pub u32);
 

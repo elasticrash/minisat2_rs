@@ -23,11 +23,7 @@ pub struct Assigns {
 #[derive(Clone)]
 pub struct SolverState {
     pub ok: bool,
-    /// Owns every clause ever allocated. Everything else refers to clauses by
-    /// [`ClauseRef`] (an index into this arena) instead of cloning them.
     pub arena: Vec<Clause>,
-    /// Arena slots whose clauses have been removed and can be reused by the
-    /// next allocation, so the arena does not grow without bound.
     pub free_clauses: Vec<ClauseRef>,
     pub clauses: Vec<ClauseRef>,
     pub learnts: Vec<ClauseRef>,
@@ -130,8 +126,6 @@ pub struct SearchParams {
     pub random_var_freq: f64,
 }
 
-/// Arena access helpers. Clauses are stored once in `self.arena` and reached
-/// through their [`ClauseRef`]; these keep the indexing in one place.
 impl SolverState {
     #[inline]
     pub fn clause(&self, cref: ClauseRef) -> &Clause {
@@ -143,8 +137,6 @@ impl SolverState {
         &mut self.arena[cref.index()]
     }
 
-    /// Move a clause into the arena and return a handle to it, reusing a freed
-    /// slot when one is available.
     #[inline]
     pub fn alloc_clause(&mut self, c: Clause) -> ClauseRef {
         if let Some(cref) = self.free_clauses.pop() {

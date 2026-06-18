@@ -21,9 +21,6 @@ impl Reduce for SolverState {
 
         let extra_lim: f64 = self.cla_inc / self.learnts.len() as f64;
 
-        // Sort learnt-clause refs by their clauses' size/activity. The closure
-        // needs to read the arena while the ref list is being sorted, so take
-        // the list out (cheap pointer swap) and put it back afterwards.
         let mut learnts = std::mem::take(&mut self.learnts);
         learnts.sort_by(|&x, &y| {
             let cx = self.clause(x);

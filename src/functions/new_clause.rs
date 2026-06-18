@@ -176,10 +176,6 @@ impl NewClause for SolverState {
             let mut c: Clause = Clause::new(_learnt || _theory_clause, &ps, self.clause_id_counter);
             self.clause_id_counter += 1;
 
-            // For learnt clauses, move the highest-level literal to data[1] so
-            // that the two watches sit on the asserting literal and the literal
-            // with the highest decision level. Done before the clause is moved
-            // into the arena.
             if _learnt {
                 let mut max_i: usize = 1;
                 let mut max: i32 = self.level[var(&ps[1]) as usize];
@@ -222,7 +218,13 @@ impl NewClause for SolverState {
     }
 
     fn remove(&mut self, cref: ClauseRef, just_dealloc: bool) {
-        trace!("{}|{}|{}|{:?}", "remove".to_string(), file!(), line!(), cref);
+        trace!(
+            "{}|{}|{}|{:?}",
+            "remove".to_string(),
+            file!(),
+            line!(),
+            cref
+        );
 
         if !just_dealloc {
             let data0 = self.clause(cref).data[0];
@@ -237,10 +239,6 @@ impl NewClause for SolverState {
             self.solver_stats.clauses_literals -= self.clause(cref).size() as f64;
         }
 
-        // The clause is gone from both its watch lists (see above) and, since
-        // only unlocked clauses are ever removed, it is no reason either — so no
-        // live ClauseRef points at this slot and it is safe to recycle. We only
-        // do so when we cleaned the watches ourselves (`!just_dealloc`).
         if !just_dealloc {
             self.free_clauses.push(cref);
         }

@@ -43,9 +43,6 @@ impl Simplify for SolverState {
                     self.watches[(!_p).x as usize].clear();
                 }
 
-                // Compact the clause/learnt index lists in place: keep the
-                // surviving refs at the front and truncate. `j <= k` always, so
-                // the entry read at index `k` is never one we have overwritten.
                 for t in 0..2 {
                     let clause_size: usize = if t != 0 {
                         self.learnts.len()

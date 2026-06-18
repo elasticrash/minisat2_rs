@@ -31,9 +31,6 @@ impl Prop for SolverState {
 
             let p: Lit = self.trail[self.qhead as usize];
             self.qhead += 1;
-            // Take the watch list out so we can mutate clauses and other watch
-            // lists during the walk; it is put back at the end. This is O(1)
-            // (a pointer swap), not a clone of the list.
             let mut ws: Vec<ClauseRef> = std::mem::take(&mut self.watches[p.x as usize]);
 
             //log p
@@ -45,8 +42,6 @@ impl Prop for SolverState {
                 let cref: ClauseRef = ws[i];
                 i += 1;
 
-                // Make sure the false literal is data[1]. The clause is mutated
-                // in place in the arena (there is only one copy of it now).
                 {
                     let c = self.clause_mut(cref);
                     if c.data[0] == false_lit {
