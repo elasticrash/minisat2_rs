@@ -21,25 +21,30 @@ impl Reduce for SolverState {
 
         let extra_lim: f64 = self.cla_inc / self.learnts.len() as f64;
 
-        self.learnts.sort_by(|x, y| {
-            if x.size() > 2 && (y.size() == 2 || x.activity < y.activity) {
+        let mut learnts = std::mem::take(&mut self.learnts);
+        learnts.sort_by(|&x, &y| {
+            let cx = self.clause(x);
+            let cy = self.clause(y);
+            if cx.size() > 2 && (cy.size() == 2 || cx.activity < cy.activity) {
                 Ordering::Less
             } else {
                 Ordering::Greater
             }
         });
+        self.learnts = learnts;
 
         let half = self.learnts.len() / 2;
         let mut j: usize = 0;
         for i in 0..self.learnts.len() {
-            let removable = self.learnts[i].data.len() > 2
-                && !self.locked(&self.learnts[i].clone())
-                && (i < half || self.learnts[i].activity < extra_lim);
+            let cref = self.learnts[i];
+            let removable = self.clause(cref).data.len() > 2
+                && !self.locked(cref)
+                && (i < half || self.clause(cref).activity < extra_lim);
 
             if removable {
-                self.remove(self.learnts[i].clone(), false);
+                self.remove(cref, false);
             } else {
-                self.learnts[j] = self.learnts[i].clone();
+                self.learnts[j] = self.learnts[i];
                 j += 1;
             }
         }

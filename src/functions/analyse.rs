@@ -22,12 +22,12 @@ use std::cmp::max;
 |    Will undo part of the trail, upto but not beyond the assumption of the current decision level.
 |________________________________________________________________________________________________@*/
 pub trait Analyze {
-    fn analyze(&mut self, confl: Option<Clause>, out_learnt: &mut Vec<Lit>) -> i32;
+    fn analyze(&mut self, confl: Option<ClauseRef>, out_learnt: &mut Vec<Lit>) -> i32;
     fn analyze_removeable(&mut self, _p: Lit, min_level: u32) -> bool;
 }
 
 impl Analyze for SolverState {
-    fn analyze(&mut self, mut confl: Option<Clause>, out_learnt: &mut Vec<Lit>) -> i32 {
+    fn analyze(&mut self, mut confl: Option<ClauseRef>, out_learnt: &mut Vec<Lit>) -> i32 {
         trace!(
             "{}|{}|{}|{:?}",
             "analyse".to_string(),
@@ -45,16 +45,17 @@ impl Analyze for SolverState {
         while {
             {
                 assert!(confl.is_some());
-                let c: &Clause = &confl.unwrap();
+                let cref: ClauseRef = confl.unwrap();
 
-                if c.learnt() {
-                    self.cla_bump_activity(&mut c.clone());
+                if self.clause(cref).learnt() {
+                    self.cla_bump_activity(cref);
                 }
 
                 let start: usize = if p == Lit::undefined() { 0 } else { 1 };
 
-                for idata in start..c.data.len() {
-                    let q: Lit = c.data[idata];
+                let c_len = self.clause(cref).data.len();
+                for idata in start..c_len {
+                    let q: Lit = self.clause(cref).data[idata];
                     if self.analyze_seen[var(&q) as usize] == Lbool::Undef0
                         && self.level[var(&q) as usize] > 0
                     {
@@ -78,7 +79,7 @@ impl Analyze for SolverState {
                     }
                 }
                 p = self.trail[(index + 1) as usize];
-                confl = self.reason[var(&p) as usize].clone();
+                confl = self.reason[var(&p) as usize];
                 self.analyze_seen[var(&p) as usize] = Lbool::Undef0;
                 path_c -= 1;
             }
@@ -128,11 +129,12 @@ impl Analyze for SolverState {
                             j += 1;
                             keep = true;
                         }
-                        Some(ref p) => {
-                            let c: &Clause = p;
-                            for k in 1..c.data.len() {
-                                if self.analyze_seen[var(&c.data[k]) as usize] == Lbool::Undef0
-                                    && self.level[var(&c.data[k]) as usize] != 0
+                        Some(cref) => {
+                            let c_len = self.clause(cref).data.len();
+                            for k in 1..c_len {
+                                let lit_k = self.clause(cref).data[k];
+                                if self.analyze_seen[var(&lit_k) as usize] == Lbool::Undef0
+                                    && self.level[var(&lit_k) as usize] != 0
                                 {
                                     out_learnt[j] = out_learnt[i];
                                     j += 1;
@@ -182,14 +184,14 @@ impl Analyze for SolverState {
         let top: i32 = self.analyze_toclear.len() as i32;
 
         while !self.analyze_stack.is_empty() {
-            assert!(self.reason[var(self.analyze_stack.last().unwrap()) as usize].is_some());
-            let c: &Clause;
-            match &self.reason[var(self.analyze_stack.last().unwrap()) as usize] {
-                Some(clause) => {
-                    c = clause;
+            let top_var = var(self.analyze_stack.last().unwrap()) as usize;
+            assert!(self.reason[top_var].is_some());
+            match self.reason[top_var] {
+                Some(cref) => {
                     self.analyze_stack.pop();
-                    for i in 1..c.data.len() {
-                        let p: Lit = c.data[i];
+                    let c_len = self.clause(cref).data.len();
+                    for i in 1..c_len {
+                        let p: Lit = self.clause(cref).data[i];
                         if self.analyze_seen[var(&p) as usize] == Lbool::Undef0
                             && self.level[var(&p) as usize] != 0
                         {

@@ -1,6 +1,5 @@
 use crate::functions::new_clause::*;
 use crate::functions::propagate::*;
-use crate::models::clause::*;
 use crate::models::lit::*;
 use crate::models::solverstate::*;
 
@@ -51,30 +50,31 @@ impl Simplify for SolverState {
                         self.clauses.len()
                     };
 
-                    let mut cs: Vec<Clause> = if t != 0 {
-                        self.learnts.clone()
-                    } else {
-                        self.clauses.clone()
-                    };
-
-                    let mut j: i32 = 0;
+                    let mut j: usize = 0;
                     for k in 0..clause_size {
-                        let a = !self.locked(&cs[k]);
+                        let cref = if t != 0 {
+                            self.learnts[k]
+                        } else {
+                            self.clauses[k]
+                        };
+                        let a = !self.locked(cref);
                         let b = self.simplify(k as i32, t);
 
                         if a && b {
-                            self.remove(cs[k].clone(), false);
+                            self.remove(cref, false);
                         } else {
-                            cs[j as usize] = cs[k].clone();
+                            if t != 0 {
+                                self.learnts[j] = cref;
+                            } else {
+                                self.clauses[j] = cref;
+                            }
                             j += 1;
                         }
                     }
                     if t != 0 {
-                        self.learnts
-                            .truncate(self.learnts.len() - (clause_size - j as usize))
+                        self.learnts.truncate(j);
                     } else {
-                        self.clauses
-                            .truncate(self.clauses.len() - (clause_size - j as usize))
+                        self.clauses.truncate(j);
                     }
                 }
 

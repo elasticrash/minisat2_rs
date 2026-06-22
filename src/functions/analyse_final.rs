@@ -14,11 +14,11 @@ use crate::models::solverstate::*;
 |    if conflict arose before search even started).
 |________________________________________________________________________________________________@*/
 pub trait Final {
-    fn analyse_final(&mut self, _confl: &Clause, _skip_first: bool);
+    fn analyse_final(&mut self, _confl: ClauseRef, _skip_first: bool);
 }
 
 impl Final for SolverState {
-    fn analyse_final(&mut self, _confl: &Clause, _skip_first: bool) {
+    fn analyse_final(&mut self, _confl: ClauseRef, _skip_first: bool) {
         trace!(
             "{}|{}|{}|{:?}",
             "analyse final".to_string(),
@@ -37,8 +37,9 @@ impl Final for SolverState {
             false => 0,
         };
 
-        for _y in istart.._confl.data.len() as i32 {
-            let x: usize = var(&_confl.data[_y as usize]) as usize;
+        let confl_len = self.clause(_confl).data.len() as i32;
+        for _y in istart..confl_len {
+            let x: usize = var(&self.clause(_confl).data[_y as usize]) as usize;
             if self.level[x] > 0 {
                 self.analyze_seen[x] = Lbool::True;
             }
@@ -53,11 +54,13 @@ impl Final for SolverState {
             let x: usize = var(&self.trail[y as usize]) as usize;
 
             if self.analyze_seen[x] != Lbool::Undef0 {
-                match &self.reason[x] {
-                    Some(clause) => {
-                        for j in 1..clause.data.len() {
-                            if self.level[var(&clause.data[j]) as usize] > 0 {
-                                self.analyze_seen[var(&clause.data[j]) as usize] = Lbool::True;
+                match self.reason[x] {
+                    Some(cref) => {
+                        let c_len = self.clause(cref).data.len();
+                        for j in 1..c_len {
+                            let lit_j = self.clause(cref).data[j];
+                            if self.level[var(&lit_j) as usize] > 0 {
+                                self.analyze_seen[var(&lit_j) as usize] = Lbool::True;
                             }
                         }
                     }

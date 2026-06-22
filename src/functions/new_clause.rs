@@ -34,7 +34,7 @@ pub trait NewClause {
         _theory_clause: bool,
         _copy: bool,
     );
-    fn remove(&mut self, c: Clause, just_dealloc: bool);
+    fn remove(&mut self, cref: ClauseRef, just_dealloc: bool);
     fn simplify(&mut self, k: i32, t: i32) -> bool;
     fn new_var(&mut self) -> i32;
     fn assume(&mut self, p: Lit) -> bool;
@@ -176,58 +176,71 @@ impl NewClause for SolverState {
             let mut c: Clause = Clause::new(_learnt || _theory_clause, &ps, self.clause_id_counter);
             self.clause_id_counter += 1;
 
-            if !_learnt && !_theory_clause {
-                self.clauses.push(c.clone());
-                self.solver_stats.clauses_literals += c.size() as f64;
-            } else {
-                if _learnt {
-                    let mut max_i: usize = 1;
-                    let mut max: i32 = self.level[var(&ps[1]) as usize];
-                    for (y, lt) in ps.iter().enumerate().skip(2) {
-                        if self.level[var(lt) as usize] > max {
-                            max = self.level[var(lt) as usize];
-                            max_i = y;
-                        }
+            if _learnt {
+                let mut max_i: usize = 1;
+                let mut max: i32 = self.level[var(&ps[1]) as usize];
+                for (y, lt) in ps.iter().enumerate().skip(2) {
+                    if self.level[var(lt) as usize] > max {
+                        max = self.level[var(lt) as usize];
+                        max_i = y;
                     }
-                    c.data[1] = ps[max_i];
-                    c.data[max_i] = ps[1];
-
-                    assert!(self.enqueue(&c.data[0], Some(c.clone())));
-                } else {
-                    move_back(c.clone().data[0], c.clone().data[1], self);
                 }
-
-                self.cla_bump_activity(&mut c);
-                self.learnts.push(c.clone());
-                self.solver_stats.learnts_literals += c.clone().size() as f64;
+                c.data[1] = ps[max_i];
+                c.data[max_i] = ps[1];
             }
 
-            let watch_position_zero = (!c.data[0]).x as usize;
-            let watch_position_one = (!c.data[1]).x as usize;
+            let cref: ClauseRef = self.alloc_clause(c);
 
-            self.watches[watch_position_zero].push(c.clone());
-            self.watches[watch_position_one].push(c.clone());
+            if !_learnt && !_theory_clause {
+                self.clauses.push(cref);
+                self.solver_stats.clauses_literals += self.clause(cref).size() as f64;
+            } else {
+                if _learnt {
+                    let data0 = self.clause(cref).data[0];
+                    assert!(self.enqueue(&data0, Some(cref)));
+                } else {
+                    let data0 = self.clause(cref).data[0];
+                    let data1 = self.clause(cref).data[1];
+                    move_back(data0, data1, self);
+                }
+
+                self.cla_bump_activity(cref);
+                self.learnts.push(cref);
+                self.solver_stats.learnts_literals += self.clause(cref).size() as f64;
+            }
+
+            let watch_position_zero = (!self.clause(cref).data[0]).x as usize;
+            let watch_position_one = (!self.clause(cref).data[1]).x as usize;
+
+            self.watches[watch_position_zero].push(cref);
+            self.watches[watch_position_one].push(cref);
         }
     }
 
-    fn remove(&mut self, c: Clause, just_dealloc: bool) {
-        trace!("{}|{}|{}|{:?}", "remove".to_string(), file!(), line!(), c);
+    fn remove(&mut self, cref: ClauseRef, just_dealloc: bool) {
+        trace!(
+            "{}|{}|{}|{:?}",
+            "remove".to_string(),
+            file!(),
+            line!(),
+            cref
+        );
 
         if !just_dealloc {
-            remove_watch(
-                &mut self.watches[(!c.clone().data[0]).x as usize],
-                c.clone(),
-            );
-            remove_watch(
-                &mut self.watches[(!c.clone().data[1]).x as usize],
-                c.clone(),
-            );
+            let data0 = self.clause(cref).data[0];
+            let data1 = self.clause(cref).data[1];
+            remove_watch(&mut self.watches[(!data0).x as usize], cref);
+            remove_watch(&mut self.watches[(!data1).x as usize], cref);
         }
 
-        if c.learnt() {
-            self.solver_stats.learnts_literals -= c.size() as f64;
+        if self.clause(cref).learnt() {
+            self.solver_stats.learnts_literals -= self.clause(cref).size() as f64;
         } else {
-            self.solver_stats.clauses_literals -= c.size() as f64;
+            self.solver_stats.clauses_literals -= self.clause(cref).size() as f64;
+        }
+
+        if !just_dealloc {
+            self.free_clauses.push(cref);
         }
     }
     fn simplify(&mut self, k: i32, t: i32) -> bool {
@@ -241,15 +254,16 @@ impl NewClause for SolverState {
         );
         assert!(self.decision_level() == 0);
 
-        let c = if t != 0 {
-            &self.learnts[k as usize]
+        let cref: ClauseRef = if t != 0 {
+            self.learnts[k as usize]
         } else {
-            &self.clauses[k as usize]
+            self.clauses[k as usize]
         };
 
-        for y in 0..c.size() {
-            let f = self.clone().value_by_lit(c.data[y as usize]);
-            if f == Lbool::True {
+        let c_len = self.clause(cref).data.len();
+        for y in 0..c_len {
+            let lit = self.clause(cref).data[y];
+            if self.value_by_lit(lit) == Lbool::True {
                 return true;
             }
         }
@@ -346,7 +360,7 @@ fn basic_clause_simplification(_ps: Vec<Lit>, _copy: bool) -> Option<Vec<Lit>> {
     Some(qs)
 }
 
-fn remove_watch(ws: &mut Vec<Clause>, elem: Clause) -> bool {
+fn remove_watch(ws: &mut Vec<ClauseRef>, elem: ClauseRef) -> bool {
     trace!(
         "{}|{}|{}|{:?}",
         "remove_watch".to_string(),
@@ -366,7 +380,7 @@ fn remove_watch(ws: &mut Vec<Clause>, elem: Clause) -> bool {
         j += 1;
     }
     for y in j..ws.len() - 1 {
-        ws[y] = ws[y + 1].clone();
+        ws[y] = ws[y + 1];
     }
     ws.pop();
     true
