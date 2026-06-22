@@ -1,0 +1,4 @@
+c DIMACS format for the exam passing example
+p cnf 4 2
+-1 -2 4 0
+-3 4 0
